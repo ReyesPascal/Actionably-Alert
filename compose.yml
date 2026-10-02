@@ -1,0 +1,14 @@
+services:
+  actionably-alert:
+    build: .
+    container_name: actionably-alert
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/data
+    # Optional: set these here instead of in the app's Settings.
+    # environment:
+    #   - REPOS=owner/repo
+    #   - GITHUB_TOKEN=github_pat_xxx
+    #   - POLL_SECONDS=15

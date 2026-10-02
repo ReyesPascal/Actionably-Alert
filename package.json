@@ -1,0 +1,8 @@
+{
+  "name": "actionably-alert",
+  "version": "1.0.0",
+  "description": "Popups when your GitHub Actions start and finish.",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "license": "MIT"
+}

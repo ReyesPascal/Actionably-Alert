@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Actionably Alert</title>
+<link rel="icon" href="icon.svg">
+<style>
+  :root {
+    --bg: #000; --glass: rgba(44,44,46,.72); --tile: rgba(255,255,255,.05); --edge: rgba(255,255,255,.10);
+    --text: #f5f5f7; --quiet: #8e8e93; --blue: #0a84ff; --green: #30d158; --orange: #ff9f0a; --red: #ff453a;
+    --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: radial-gradient(1200px 600px at 20% -10%, #1c2a44 0%, transparent 60%), var(--bg);
+         color: var(--text); font: 15px/1.4 var(--font); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 28px 16px 80px; }
+  header { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+  header img { width: 44px; height: 44px; }
+  h1 { font-size: 26px; font-weight: 700; margin: 0; letter-spacing: -.02em; }
+  .sub { color: var(--quiet); font-size: 13px; }
+  header .spacer { flex: 1; }
+  .panel { background: var(--glass); border: 1px solid var(--edge); border-radius: 18px; padding: 16px;
+           backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); box-shadow: 0 10px 40px rgba(0,0,0,.4); margin-bottom: 18px; }
+  .label { color: var(--quiet); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; margin: 0 4px 8px; }
+  .capsule { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 999px; background: var(--tile);
+             font-size: 13px; color: var(--text); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--quiet); flex: none; }
+  .dot.green { background: var(--green); } .dot.orange { background: var(--orange); } .dot.red { background: var(--red); }
+  .dot.pulse { animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .35; } }
+  button { font: inherit; border: 0; cursor: pointer; border-radius: 999px; padding: 9px 16px; background: var(--tile); color: var(--text); }
+  button.primary { background: var(--blue); color: #fff; font-weight: 600; }
+  button.link { background: none; color: var(--blue); padding: 6px 4px; }
+  button:disabled { opacity: .5; cursor: default; }
+  input { font: inherit; color: var(--text); background: var(--tile); border: 1px solid transparent; border-radius: 12px; padding: 10px 12px; width: 100%; outline: none; }
+  input:focus { border-color: var(--blue); }
+  .row { display: flex; align-items: center; gap: 12px; padding: 11px 12px; border-radius: 12px; background: var(--tile); margin-bottom: 6px; }
+  .row .main { flex: 1; min-width: 0; }
+  .row .title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row .meta { color: var(--quiet); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row .time { color: var(--quiet); font-size: 13px; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+  a.row { color: inherit; text-decoration: none; }
+  a.row:hover { background: rgba(255,255,255,.08); }
+  @media (max-width: 480px) { h1 { font-size: 21px; } header img { width: 38px; height: 38px; } }
+  .empty { color: var(--quiet); text-align: center; padding: 26px 10px; }
+  .repo-chip { display: inline-flex; align-items: center; gap: 8px; padding: 6px 8px 6px 12px; border-radius: 999px; background: var(--tile); margin: 0 6px 6px 0; }
+  .repo-chip .x { background: none; padding: 0 6px; color: var(--quiet); font-size: 17px; line-height: 1; }
+  .repo-chip .err { color: var(--orange); font-size: 12px; }
+  .add { display: flex; gap: 8px; margin-top: 6px; }
+  .hint { color: var(--quiet); font-size: 13px; margin: 8px 4px 0; }
+  .hint a, a.blue { color: var(--blue); text-decoration: none; }
+  .notice { display: flex; align-items: center; gap: 12px; }
+  .notice .main { flex: 1; color: var(--quiet); font-size: 14px; }
+
+  /* sheet */
+  .scrim { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: none; align-items: center; justify-content: center; padding: 16px; z-index: 20; }
+  .scrim.open { display: flex; }
+  .sheet { width: 100%; max-width: 480px; background: #1c1c1e; border: 1px solid var(--edge); border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,.6); overflow: hidden; }
+  .sheet .head { display: flex; align-items: center; padding: 14px 16px; border-bottom: 1px solid var(--edge); }
+  .sheet .head h2 { flex: 1; text-align: center; font-size: 17px; margin: 0; }
+  .sheet .body { padding: 16px; }
+  .sheet .field { margin-bottom: 16px; }
+  .sheet .foot { padding: 12px 16px; border-top: 1px solid var(--edge); display: flex; justify-content: flex-end; gap: 8px; }
+
+  /* popups */
+  #toasts { position: fixed; bottom: 16px; right: 16px; left: 16px; display: flex; flex-direction: column-reverse; align-items: flex-end; gap: 10px; z-index: 50; pointer-events: none; }
+  .toast { pointer-events: auto; width: 100%; max-width: 380px; display: flex; gap: 12px; align-items: flex-start; padding: 14px 14px 14px 16px;
+           background: rgba(44,44,46,.92); border: 1px solid var(--edge); border-radius: 18px; backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
+           box-shadow: 0 16px 50px rgba(0,0,0,.55); animation: drop .35s cubic-bezier(.2,.9,.3,1.2); }
+  .toast.out { animation: lift .3s ease forwards; }
+  .toast .badge { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; font-size: 18px; flex: none; }
+  .toast .main { flex: 1; min-width: 0; }
+  .toast .t1 { font-weight: 600; }
+  .toast .t2 { color: var(--quiet); font-size: 13px; overflow: hidden; text-overflow: ellipsis; }
+  .toast .close { background: none; color: var(--quiet); padding: 0 4px; font-size: 18px; line-height: 1; }
+  @keyframes drop { from { transform: translateY(20px) scale(.96); opacity: 0; } }
+  @keyframes lift { to { transform: translateY(14px); opacity: 0; } }
+</style>
+</head>
+<body>
+<div id="toasts"></div>
+<div class="wrap">
+  <header>
+    <img src="icon.svg" alt="">
+    <div>
+      <h1>Actionably Alert</h1>
+      <div class="sub" id="connection">Connecting…</div>
+    </div>
+    <div class="spacer"></div>
+    <button onclick="openSettings()">Settings</button>
+  </header>
+
+  <div class="panel notice" id="notifyPanel" hidden>
+    <div class="main" id="notifyText">Turn on notifications to get popups even when this tab is in the background.</div>
+    <button class="primary" id="notifyBtn" onclick="askNotify()">Turn on</button>
+  </div>
+
+  <div class="label">Watching</div>
+  <div class="panel">
+    <div id="repoList"></div>
+    <form class="add" onsubmit="addRepo(event)">
+      <input id="repoInput" placeholder="owner/repo or a GitHub link" autocomplete="off" spellcheck="false">
+      <button class="primary" type="submit">Watch</button>
+    </form>
+    <div class="hint" id="repoHint">You'll get a popup when a run starts and when it finishes.</div>
+  </div>
+
+  <div class="label">Runs</div>
+  <div class="panel" id="runs"><div class="empty">Waiting for the first check…</div></div>
+</div>
+
+<div class="scrim" id="settings" onclick="if (event.target === this) closeSettings()">
+  <div class="sheet" role="dialog" aria-label="Settings">
+    <div class="head"><h2>Settings</h2></div>
+    <div class="body">
+      <div class="field">
+        <div class="label">GitHub token</div>
+        <input id="tokenInput" type="password" placeholder="Paste a token" autocomplete="off">
+        <div class="hint" id="tokenHint">Needed for private repos, and lets it check more often.
+          <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">Make one</a>
+          with read access to Actions.</div>
+      </div>
+      <div class="field">
+        <div class="label">Check every</div>
+        <input id="intervalInput" type="number" min="5" max="600" step="5">
+        <div class="hint">Seconds. Without a token, keep this at 60 or more (GitHub allows 60 checks an hour).</div>
+      </div>
+      <div class="field">
+        <div class="label">Popups</div>
+        <label class="row" style="cursor:pointer"><span class="main">Play a sound</span><input type="checkbox" id="soundInput" style="width:auto"></label>
+        <button class="link" onclick="testAlert()">Send a test popup</button>
+      </div>
+    </div>
+    <div class="foot">
+      <button onclick="closeSettings()">Cancel</button>
+      <button class="primary" onclick="saveSettings()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let state = { repos: [], runs: [], status: {} };
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+let soundOn = true; try { soundOn = localStorage.getItem('aa.sound') !== 'off'; } catch {}
+
+// ---------- live connection ----------
+function connect() {
+  const es = new EventSource('events');
+  es.addEventListener('open', () => { $('connection').textContent = 'Live'; });
+  es.addEventListener('error', () => { $('connection').textContent = 'Reconnecting…'; });
+  es.addEventListener('state', e => { state = JSON.parse(e.data); render(); });
+  es.addEventListener('alert', e => alertFor(JSON.parse(e.data)));
+}
+
+// ---------- rendering ----------
+function since(iso) {
+  if (!iso) return '';
+  let s = Math.max(0, Math.round((Date.now() - new Date(iso)) / 1000));
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60); s %= 60;
+  if (m < 60) return `${m}m ${String(s).padStart(2, '0')}s`;
+  const h = Math.floor(m / 60);
+  return h < 24 ? `${h}h ${m % 60}m` : `${Math.floor(h / 24)}d`;
+}
+function duration(run) {
+  const s = Math.round((new Date(run.updatedAt) - new Date(run.startedAt)) / 1000);
+  return s >= 0 ? since(new Date(Date.now() - s * 1000).toISOString()) : '';
+}
+function look(run) {
+  if (run.status !== 'completed') return { dot: 'orange pulse', word: run.status === 'queued' ? 'Queued' : run.status === 'waiting' ? 'Waiting for approval' : 'Running', icon: '▶︎', color: 'var(--orange)' };
+  switch (run.conclusion) {
+    case 'success': return { dot: 'green', word: 'Passed', icon: '✓', color: 'var(--green)' };
+    case 'failure': case 'timed_out': case 'startup_failure': return { dot: 'red', word: run.conclusion === 'timed_out' ? 'Timed out' : 'Failed', icon: '✕', color: 'var(--red)' };
+    case 'cancelled': return { dot: '', word: 'Cancelled', icon: '–', color: 'var(--quiet)' };
+    case 'skipped': return { dot: '', word: 'Skipped', icon: '–', color: 'var(--quiet)' };
+    default: return { dot: '', word: run.conclusion || 'Done', icon: '•', color: 'var(--quiet)' };
+  }
+}
+
+function render() {
+  const multi = state.repos.length > 1;
+  $('repoList').innerHTML = state.repos.length ? state.repos.map(r => {
+    const st = state.status[r] || {};
+    const dot = st.error ? 'orange' : st.ready ? 'green' : '';
+    return `<span class="repo-chip" title="${esc(st.error || (st.checkedAt ? 'Last checked ' + new Date(st.checkedAt).toLocaleTimeString() : 'Checking…'))}">
+      <span class="dot ${dot}"></span>${esc(r)}${st.error ? ` <span class="err">${esc(st.error)}</span>` : ''}
+      <button class="x" aria-label="Stop watching ${esc(r)}" onclick="removeRepo('${esc(r)}')">×</button></span>`;
+  }).join('') : '';
+  $('repoHint').style.display = state.repos.length ? 'none' : '';
+
+  if (!state.repos.length) { $('runs').innerHTML = '<div class="empty">Add a repo above to start watching its Actions.</div>'; return; }
+  if (!state.runs.length) { $('runs').innerHTML = '<div class="empty">No runs yet. New ones will show up here.</div>'; return; }
+  $('runs').innerHTML = state.runs.map(run => {
+    const l = look(run), live = run.status !== 'completed';
+    const meta = [multi ? run.repo : '', run.title && run.title !== run.name ? run.title : '', run.branch].filter(Boolean).join(' · ');
+    return `<a class="row" href="${esc(run.url)}" target="_blank" rel="noopener">
+      <span class="dot ${l.dot}"></span>
+      <span class="main"><div class="title">${esc(run.name)} <span style="color:var(--quiet);font-weight:400">#${run.number}</span></div><div class="meta">${esc(meta)}</div></span>
+      <span class="time"><div style="color:${l.color}">${l.word}</div><div data-${live ? 'live' : 'ago'}="${esc(live ? run.startedAt : run.updatedAt)}">${live ? since(run.startedAt) : 'took ' + duration(run)}</div></span>
+    </a>`;
+  }).join('');
+}
+setInterval(() => document.querySelectorAll('[data-live]').forEach(el => el.textContent = since(el.dataset.live)), 1000);
+
+// ---------- popups ----------
+function alertFor(ev) {
+  const run = ev.run, l = ev.kind === 'started' ? look({ status: 'in_progress' }) : ev.kind === 'test' ? { icon: '🔔', color: 'var(--blue)', word: 'Test' } : look(run);
+  const head = ev.kind === 'started' ? `Started: ${run.name}` : ev.kind === 'test' ? 'Test alert' : `${l.word}: ${run.name}`;
+  const detail = ev.kind === 'test' ? run.title
+    : ev.kind === 'started' ? [run.repo, run.branch, run.actor && `by ${run.actor}`].filter(Boolean).join(' · ')
+    : [run.repo, run.branch, `took ${duration(run)}`].filter(Boolean).join(' · ');
+
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.innerHTML = `<div class="badge" style="background:color-mix(in srgb, ${l.color} 22%, transparent);color:${l.color}">${l.icon}</div>
+    <div class="main"><div class="t1">${esc(head)}</div><div class="t2">${esc(detail)}</div>
+    ${run.url ? `<a class="blue" style="font-size:13px" href="${esc(run.url)}" target="_blank" rel="noopener">Open on GitHub</a>` : ''}</div>
+    <button class="close" aria-label="Dismiss">×</button>`;
+  const dismiss = () => { el.classList.add('out'); setTimeout(() => el.remove(), 300); };
+  el.querySelector('.close').onclick = dismiss;
+  $('toasts').prepend(el);
+  // finished-with-a-problem popups stay until dismissed; others fade after 12s
+  if (!(ev.kind === 'finished' && l.dot === 'red')) setTimeout(dismiss, 12000);
+
+  if (soundOn) chime(ev.kind === 'finished' ? (l.dot === 'red' ? 'bad' : 'good') : 'start');
+  if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
+    const n = new Notification(head, { body: detail, icon: 'icon.svg', tag: `${run.id}-${ev.kind}` });
+    n.onclick = () => { window.focus(); if (run.url) window.open(run.url, '_blank'); n.close(); };
+  }
+  if (document.hidden) flashTitle(head);
+}
+
+let audio;
+function chime(kind) {
+  try {
+    audio ||= new (window.AudioContext || window.webkitAudioContext)();
+    const notes = { start: [660, 880], good: [784, 1047], bad: [440, 330] }[kind];
+    notes.forEach((f, i) => {
+      const o = audio.createOscillator(), g = audio.createGain(), t = audio.currentTime + i * 0.14;
+      o.frequency.value = f; o.type = 'sine';
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.18, t + 0.02); g.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+      o.connect(g).connect(audio.destination); o.start(t); o.stop(t + 0.4);
+    });
+  } catch {}
+}
+let flashTimer;
+function flashTitle(text) {
+  clearInterval(flashTimer);
+  let on = false;
+  flashTimer = setInterval(() => { document.title = (on = !on) ? `● ${text}` : 'Actionably Alert'; }, 1000);
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { clearInterval(flashTimer); document.title = 'Actionably Alert'; } });
+// browsers only allow sound after the first click
+document.addEventListener('click', () => { try { audio ||= new (window.AudioContext || window.webkitAudioContext)(); audio.resume(); } catch {} }, { once: true });
+
+function setupNotify() {
+  if (!('Notification' in window) || !window.isSecureContext) {
+    $('notifyPanel').hidden = false;
+    $('notifyText').textContent = 'Desktop notifications need this page on localhost or https. Popups and sound still work while this tab is open.';
+    $('notifyBtn').hidden = true; return;
+  }
+  $('notifyPanel').hidden = Notification.permission !== 'default';
+}
+async function askNotify() { await Notification.requestPermission(); setupNotify(); }
+
+// ---------- actions ----------
+async function post(url, body) {
+  const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) });
+  if (r.status === 204) return null;
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error || 'Something went wrong');
+  state = data; render(); return data;
+}
+async function addRepo(e) {
+  e.preventDefault();
+  const v = $('repoInput').value.trim(); if (!v) return;
+  try { await post('api/config', { repos: [...state.repos, v] }); $('repoInput').value = ''; $('repoHint').style.display = 'none'; }
+  catch (err) { $('repoHint').style.display = ''; $('repoHint').textContent = err.message; $('repoHint').style.color = 'var(--orange)'; }
+}
+function removeRepo(r) { post('api/config', { repos: state.repos.filter(x => x !== r) }); }
+function openSettings() {
+  $('tokenInput').value = ''; $('tokenInput').placeholder = state.hasToken ? 'Saved (paste a new one to replace it)' : 'Paste a token';
+  $('intervalInput').value = state.interval; $('soundInput').checked = soundOn;
+  $('settings').classList.add('open');
+}
+function closeSettings() { $('settings').classList.remove('open'); }
+async function saveSettings() {
+  const body = { interval: Number($('intervalInput').value) };
+  if ($('tokenInput').value.trim()) body.token = $('tokenInput').value.trim();
+  soundOn = $('soundInput').checked; try { localStorage.setItem('aa.sound', soundOn ? 'on' : 'off'); } catch {}
+  await post('api/config', body); closeSettings();
+}
+function testAlert() { post('api/test'); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSettings(); });
+
+setupNotify();
+connect();
+</script>
+</body>
+</html>
