@@ -4,13 +4,15 @@ A tiny app that watches your GitHub repo's **Actions** and pops up when a run **
 
 ## Install
 
+Save [`compose.yml`](compose.yml) on your server (or paste it into Portainer / Dockge as a new stack), then:
+
 ```sh
-git clone https://github.com/<you>/Actionably-Alert.git
-cd Actionably-Alert
-docker compose up -d --build
+docker compose up -d
 ```
 
-Open **http://localhost:8080** (or `http://<server-ip>:8080`).
+Open **http://localhost:4000** (or `http://<server-ip>:4000`).
+
+To update later: `docker compose pull && docker compose up -d`.
 
 ## Use
 
@@ -25,4 +27,4 @@ Keep the page open (a pinned tab works well). Failed runs stay on screen until y
 
 > Desktop notifications need the page on `localhost` or `https`. Over plain `http://<ip>` you still get in-page popups, sound and a flashing tab title.
 
-Settings are saved in `./data/config.json`. The token never leaves the server.
+Settings are saved in the `actionably-alert-data` volume. The token never leaves the server.

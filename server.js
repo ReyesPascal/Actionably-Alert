@@ -4,7 +4,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const PORT = Number(process.env.PORT || 8080);
+const PORT = Number(process.env.PORT || 4000);
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 const CONFIG_FILE = path.join(DATA_DIR, 'config.json');
 const API = process.env.GITHUB_API || 'https://api.github.com';
